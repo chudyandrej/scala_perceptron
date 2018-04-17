@@ -3,57 +3,47 @@ package org.apache
 
 
 import org.apache.spark.rdd.RDD
-import breeze.linalg.{DenseVector, csvread}
+import breeze.linalg.{DenseMatrix, DenseVector, csvread}
 import breeze.numerics.exp
 import org.apache.spark.SparkContext
 import org.apache.spark.util.AccumulatorV2
 
 
 
-class Perceptron(var l_rate: Double, var n_epoch: Int)  extends java.io.Serializable {
-
-  var w : DenseVector[Double] = _
+class Perceptron(var l_rate: Double, var n_epoch: Int = 100)  extends java.io.Serializable {
 
 
-  def fit(X:RDD[DenseVector[Double]], y:RDD[Int], sc:SparkContext): Unit = {
-    val myVectorAcc = new VectorAccumulatorV2(X.first().length)
+
+  def fit(X:RDD[DenseVector[Double]], y:RDD[Int]): Unit = {
+
+    var w : DenseVector[Double] = DenseVector.zeros[Double](X.first().length)
+
+    val myVectorAcc =  VectorAccumulatorV2
+    myVectorAcc.init()
     sc.register(myVectorAcc, "MyVectorAcc1")
-
+    sc.accumulator()
     val learning_rate = l_rate
-    var w_local = DenseVector.zeros[Double](X.first().length)
     val X_y = X.zip(y)
 
-    for( _ <- 1 to n_epoch){
-
-      val delta_w = X_y.map(f_l => {
-        val x = myVectorAcc.value.t * f_l._1
-        if (1 / 1 + exp(-x) >= 0){
-          myVectorAcc.add(f_l._1 * (learning_rate * (f_l._2 - 0)))
-
-        } else {
-          myVectorAcc.add(f_l._1 * (learning_rate * (f_l._2 - 1)))
-
-        }
-      })
-     // delta_w.foreach(println)
+    for( _ <- X_y){
 
 
+      myVectorAcc.add(DenseVector(0,0,0,1))
+
+//      X_y.foreach(f_l => {
+////        f_l._1 * (0.01 * (f_l._2.toInt - 0)))
+//
+//
+//
+//
+//      })
     }
 
-    this.w = w_local
 
-//    println(this.w)
+    println(myVectorAcc.value)
+
   }
 
-
-  def predicate(X:DenseVector[Double]): Int ={
-    val tmp = this.w.t * X
-    if(1 / 1 + exp(-tmp) >= 0){
-      0
-    } else {
-      1
-    }
-  }
 
 
 }
@@ -62,9 +52,15 @@ class Perceptron(var l_rate: Double, var n_epoch: Int)  extends java.io.Serializ
 
 
 
-class VectorAccumulatorV2(var size:Int) extends AccumulatorV2[DenseVector[Double], DenseVector[Double]] {
+object VectorAccumulatorV2 extends AccumulatorV2[DenseVector[Double], DenseVector[Double]] {
 
+  private var size: Int = 1
   private var myVector: DenseVector[Double] = DenseVector.zeros[Double](size)
+
+
+  def init(size: Int): Unit = {
+    this.size = size
+  }
 
   def reset(): Unit = {
     myVector =  DenseVector.zeros[Double](size)
@@ -74,12 +70,18 @@ class VectorAccumulatorV2(var size:Int) extends AccumulatorV2[DenseVector[Double
     myVector += v
   }
 
-  override def isZero: Boolean = ???
+  override def isZero: Boolean = myVector == DenseVector.zeros[Double](size)
 
-  override def copy(): AccumulatorV2[DenseVector[Double], DenseVector[Double]] = ???
+  override def copy(): AccumulatorV2[DenseVector[Double], DenseVector[Double]] = {
+    VectorAccumulatorV2
 
-  override def merge(other: AccumulatorV2[DenseVector[Double], DenseVector[Double]]): Unit = ???
+  }
 
   override def value: DenseVector[Double] = myVector
+
+  override def merge(other: AccumulatorV2[DenseVector[Double], DenseVector[Double]]): Unit = {
+    DenseVector.vertcat(this.myVector,other.value)
+
+  }
 }
 

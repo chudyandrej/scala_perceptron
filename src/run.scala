@@ -44,8 +44,10 @@ object run {
     sc.textFile("/home/ubuntu/data.txt",4).map(removePunctuation)
 
 
-    val a : Perceptron = new Perceptron(0.005f,2)
-    a.fit(features, labels)
+    val a : Perceptron = new Perceptron(0.005f,100000)
+    a.fit(features, labels, sc)
+
+
 
 
 //    sqlContext.csvFile("cars.csv")
