@@ -14,14 +14,13 @@ class Perceptron(var l_rate: Double, var n_epoch: Int = 100)  extends java.io.Se
 
 
 
-  def fit(X:RDD[DenseVector[Double]], y:RDD[Int]): Unit = {
-
-    var w : DenseVector[Double] = DenseVector.zeros[Double](X.first().length)
+  def fit(X:RDD[DenseVector[Double]], y:RDD[Int], sc:SparkContext): Unit = {
 
     val myVectorAcc =  VectorAccumulatorV2
-    myVectorAcc.init()
+    myVectorAcc.init(X.first().length)
     sc.register(myVectorAcc, "MyVectorAcc1")
-    sc.accumulator()
+    val counter = sc.longAccumulator("counter")
+
     val learning_rate = l_rate
     val X_y = X.zip(y)
 
@@ -29,17 +28,20 @@ class Perceptron(var l_rate: Double, var n_epoch: Int = 100)  extends java.io.Se
 
 
       myVectorAcc.add(DenseVector(0,0,0,1))
+      counter.add(1)
 
-//      X_y.foreach(f_l => {
-////        f_l._1 * (0.01 * (f_l._2.toInt - 0)))
-//
-//
-//
-//
-//      })
+      //      X_y.foreach(f_l => {
+      ////        f_l._1 * (0.01 * (f_l._2.toInt - 0)))
+      //
+      //
+      //
+      //
+      //      })
     }
 
 
+
+    println(counter.value)
     println(myVectorAcc.value)
 
   }
@@ -84,4 +86,3 @@ object VectorAccumulatorV2 extends AccumulatorV2[DenseVector[Double], DenseVecto
 
   }
 }
-
