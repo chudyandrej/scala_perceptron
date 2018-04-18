@@ -18,7 +18,7 @@ object run {
   def parseLine(line:String):DenseVector[Double] = {
     val fields = line.split(",")
 
-    DenseVector(fields(0).toDouble, fields(1).toDouble, fields(2).toDouble,fields(3).toDouble)
+    DenseVector(fields(0).toDouble, fields(1).toDouble )
   }
 
   def main(args: Array[String]): Unit = {
@@ -29,9 +29,9 @@ object run {
     val sc = new SparkContext("local[*]", "RatingsCounter")
 
 //    // Load up each line of the ratings data into an RDD
-    val lines = sc.textFile("./data/rawstockdata_binary_test.csv")
+    val lines = sc.textFile("./data/trainC.csv")
     val features = lines.map(parseLine)
-    val labels = lines.map(x => x.split(",")(4).toInt)
+    val labels = lines.map(x => x.split(",")(2).toInt)
 
     labels.collect()
     features.collect()
@@ -44,8 +44,8 @@ object run {
     sc.textFile("/home/ubuntu/data.txt",4).map(removePunctuation)
 
 
-    val a : Perceptron = new Perceptron(0.005f,100000)
-    a.fit(features, labels, sc)
+    val a : Perceptron = new Perceptron(0.9f,1)
+    a.fit(features, labels)
 
 
 

@@ -9,80 +9,39 @@ import org.apache.spark.SparkContext
 import org.apache.spark.util.AccumulatorV2
 
 
-
-class Perceptron(var l_rate: Double, var n_epoch: Int = 100)  extends java.io.Serializable {
-
+class Perceptron(var eta: Double, var n_iter: Int) extends java.io.Serializable  {
 
 
-  def fit(X:RDD[DenseVector[Double]], y:RDD[Int], sc:SparkContext): Unit = {
-
-    val myVectorAcc =  VectorAccumulatorV2
-    myVectorAcc.init(X.first().length)
-    sc.register(myVectorAcc, "MyVectorAcc1")
-    val counter = sc.longAccumulator("counter")
-
-    val learning_rate = l_rate
-    val X_y = X.zip(y)
-
-    for( _ <- X_y){
 
 
-      myVectorAcc.add(DenseVector(0,0,0,1))
-      counter.add(1)
+  def fit(X: RDD[DenseVector[Double]], y: RDD[Int]): Unit = {
 
-      //      X_y.foreach(f_l => {
-      ////        f_l._1 * (0.01 * (f_l._2.toInt - 0)))
-      //
-      //
-      //
-      //
-      //      })
+    val learning_rate = eta
+    var w = DenseVector.zeros[Double](X.first().length)
+
+    val X_y = X.zip(y).cache()
+
+    for(_ <- 1 to n_iter) {
+      println(w)
+      val delta_w = X_y.map(data => {
+        val pred = prediction(data._1, w)
+        learning_rate * (data._2 - pred) * data._1
+      }).collect()
+
+      delta_w.foreach(println)
+
+      val no_null_delta_w = delta_w.filter(vector => vector != DenseVector.zeros[Double](vector.length))
+      val no_null_delta_w_size = no_null_delta_w.length
+      val new_w = no_null_delta_w.reduce((x, y) => x + y) * (1 / no_null_delta_w_size.toDouble)
+      w += new_w
+
+
     }
 
-
-
-    println(counter.value)
-    println(myVectorAcc.value)
-
   }
 
 
-
-}
-
-
-
-
-
-object VectorAccumulatorV2 extends AccumulatorV2[DenseVector[Double], DenseVector[Double]] {
-
-  private var size: Int = 1
-  private var myVector: DenseVector[Double] = DenseVector.zeros[Double](size)
-
-
-  def init(size: Int): Unit = {
-    this.size = size
-  }
-
-  def reset(): Unit = {
-    myVector =  DenseVector.zeros[Double](size)
-  }
-
-  def add(v: DenseVector[Double]): Unit = {
-    myVector += v
-  }
-
-  override def isZero: Boolean = myVector == DenseVector.zeros[Double](size)
-
-  override def copy(): AccumulatorV2[DenseVector[Double], DenseVector[Double]] = {
-    VectorAccumulatorV2
-
-  }
-
-  override def value: DenseVector[Double] = myVector
-
-  override def merge(other: AccumulatorV2[DenseVector[Double], DenseVector[Double]]): Unit = {
-    DenseVector.vertcat(this.myVector,other.value)
-
+  def prediction(features: DenseVector[Double], w:DenseVector[Double]): Int = {
+    if (1 / 1 + exp(-(w.t * features)) >= 0) 0 else 1
   }
 }
