@@ -35,7 +35,7 @@ object run {
     val labels = lines.map(parser.parseLabel)
 
 
-    val a : Perceptron = new Perceptron(0.01f,1000, "gaussian")
+    val a : Perceptron = new Perceptron(0.01f,1000, "galussian")
     a.fit(features, labels)
 
   }

@@ -35,8 +35,8 @@ class Perceptron(var learning_rate: Double, var n_iter: Int, var act_f:String) e
     var act_f = threshold
     if(activation == "sigmoid"){
       act_f = sigmoid
-    }else if(activation == "gaussian"){
-      act_f = gaussian
+    }else if(activation == "galussian"){
+      act_f = galussian
     }
     act_f(tmp)
   }
@@ -52,7 +52,7 @@ class Perceptron(var learning_rate: Double, var n_iter: Int, var act_f:String) e
     if (1 / (1 + exp(-x)) > 0.5) 1.0f else 0.0f
   }
 
-  val gaussian: (Double) => Double = (x) => {
+  val galussian: (Double) => Double = (x) => {
     if (exp(- pow(-x,2) / (2*2)) > 0.5) 1.0f else 0.0f
   }
 
