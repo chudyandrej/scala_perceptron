@@ -1,56 +1,42 @@
 
-import org.apache.Perceptron
-import org.apache.log4j._
-import org.apache.spark._
-import org.apache.spark.SparkContext._
-import org.apache.spark.sql._
 import breeze.linalg.DenseVector
+import org.apache.spark._
+import org.apache.log4j._
 
+
+
+
+class Parser extends java.io.Serializable {
+  def parseFeatures(line:String):DenseVector[Double] = {
+    val fields = DenseVector(line.split(",").dropRight(1).map(x=>x.toDouble))
+    val v = DenseVector.ones[Double](fields.length + 1)
+    v(1 to fields.length ) := fields
+    v
+  }
+
+  def parseLabel(line:String):Double = {
+    val fields = line.split(",")
+    if (fields.takeRight(1)(0) == "R") 1.0 else 0.0
+  }
+}
 
 
 object run {
 
-
-
-
-
-
-  def parseLine(line:String):DenseVector[Double] = {
-    val fields = line.split(",")
-
-    DenseVector(fields(0).toDouble, fields(1).toDouble )
-  }
-
   def main(args: Array[String]): Unit = {
 
     Logger.getLogger("org").setLevel(Level.ERROR)
-
-    // Create a SparkContext using every core of the local machine, named RatingsCounter
     val sc = new SparkContext("local[*]", "RatingsCounter")
 
-//    // Load up each line of the ratings data into an RDD
-    val lines = sc.textFile("./data/trainC.csv")
-    val features = lines.map(parseLine)
-    val labels = lines.map(x => x.split(",")(2).toInt)
 
-    labels.collect()
-    features.collect()
+    val parser = new Parser()
+    val lines = sc.textFile("./data/sonar.all-data.csv")
+    val features = lines.map(parser.parseFeatures)
+    val labels = lines.map(parser.parseLabel)
 
 
-    val removePunctuation: String => String = (text: String) => {
-      val punctPattern = "[^a-zA-Z0-9\\s]".r
-      punctPattern.replaceAllIn(text, "").toLowerCase
-    }
-    sc.textFile("/home/ubuntu/data.txt",4).map(removePunctuation)
-
-
-    val a : Perceptron = new Perceptron(0.9f,1)
+    val a : Perceptron = new Perceptron(0.01f,1000, "gaussian")
     a.fit(features, labels)
-
-
-
-
-//    sqlContext.csvFile("cars.csv")
 
   }
 
