@@ -30,13 +30,29 @@ object run {
 
     val parser = new Parser()
     val lines = sc.textFile("./data/sonar.all-data.csv")
-    val features = lines.map(parser.parseFeatures)
-    val labels = lines.map(parser.parseLabel)
+    val Array(train_data,test_data) = lines.randomSplit(Array(0.90, 0.10))
 
 
 
-    val a : Perceptron = new Perceptron(0.01f,2000, "sigmoid")
-    a.fit(features, labels)
+    val train_features = train_data.map(parser.parseFeatures)
+    val train_labels = train_data.map(parser.parseLabel)
+    val test_features = test_data.map(parser.parseFeatures)
+    val test_labels = test_data.map(parser.parseLabel)
+
+
+
+
+    val model : Perceptron = new Perceptron(0.01f,500, "threshold")
+    model.fit(train_features, train_labels)
+
+
+    val X_y = test_features.zip(test_labels)
+    val accuracy = X_y.map(data => {
+      if (Math.abs(model.prediction(data._1) - data._2) <0.01) 1.0 else 0.0
+    }).reduce((x,y) => x + y) / test_features.count() * 100
+
+    println(f"Accuracy on test data:  $accuracy%2.2f%%")
+
 
 
   }

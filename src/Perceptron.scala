@@ -15,7 +15,7 @@ class Perceptron(var learning_rate: Double, var n_epoch: Int, var act_function:S
     this.w = DenseVector.zeros[Double](X.first().length)
     val X_y = X.zip(y).cache()
 
-    for(_ <- 1 to n_epoch) {
+    for(e <- 1 to n_epoch) {
 
       val delta_w = X_y.map(data => {
         val pred = prediction(data._1)
@@ -23,14 +23,18 @@ class Perceptron(var learning_rate: Double, var n_epoch: Int, var act_function:S
 
       })
       this.w += delta_w.reduce((x, y) => x + y)
+
+      if (e % 10 == 0 || e == n_epoch){
+        val accuracy = X_y.map(data => {
+          if (Math.abs(prediction(data._1) - data._2) <0.01) 1.0 else 0.0
+        }).reduce((x,y) => x + y) / X.count()
+        println(f"[Epoch $e%d] Accuracy  -----> $accuracy%2.2f")
+
+      }
     }
-
-    val accuracy = X_y.map(data => {
-      if (Math.abs(prediction(data._1) - data._2) <0.01) 1.0 else 0.0
-    }).reduce((x,y) => x + y) / X.count()
-    println(accuracy)
-
   }
+
+
 
 
   def prediction(features: DenseVector[Double]): Double = {
