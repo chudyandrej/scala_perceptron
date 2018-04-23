@@ -1,1 +1,1 @@
-# scala_perceptron
+# Apache spark Perceptron (Scala)
