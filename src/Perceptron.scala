@@ -5,54 +5,56 @@ import org.apache.spark.rdd.RDD
 
 
 
-class Perceptron(var learning_rate: Double, var n_iter: Int, var act_f:String) extends java.io.Serializable  {
+class Perceptron(var learning_rate: Double, var n_epoch: Int, var act_function:String) extends java.io.Serializable  {
+
+  var w: DenseVector[Double] = DenseVector.zeros[Double](1)
+  val act_f:String = act_function
 
   def fit(X: RDD[DenseVector[Double]], y: RDD[Double]): Unit = {
 
-    var w = DenseVector.zeros[Double](X.first().length)
+    this.w = DenseVector.zeros[Double](X.first().length)
     val X_y = X.zip(y).cache()
 
-    for(_ <- 1 to n_iter) {
+    for(_ <- 1 to n_epoch) {
 
       val delta_w = X_y.map(data => {
-        val pred = prediction(data._1, w, act_f)
+        val pred = prediction(data._1)
         learning_rate * (data._2 - pred) * data._1
 
       })
-      w += delta_w.reduce((x, y) => x + y)
+      this.w += delta_w.reduce((x, y) => x + y)
     }
 
     val accuracy = X_y.map(data => {
-      if (Math.abs(prediction(data._1, w,act_f) - data._2) <0.01) 1.0 else 0.0
+      if (Math.abs(prediction(data._1) - data._2) <0.01) 1.0 else 0.0
     }).reduce((x,y) => x + y) / X.count()
     println(accuracy)
 
   }
 
 
-  def prediction(features: DenseVector[Double], w:DenseVector[Double], activation: String): Double = {
-    val tmp = features dot w
-    var act_f = threshold
-    if(activation == "sigmoid"){
-      act_f = sigmoid
-    }else if(activation == "galussian"){
-      act_f = galussian
+  def prediction(features: DenseVector[Double]): Double = {
+
+    val act_f = this.act_function match {
+      case "sigmoid"  => sigmoid
+      case "gaussian"  =>  gaussian
+      case "threshold"  =>  threshold
+
+      case whoa  => threshold
     }
-    act_f(tmp)
+
+    act_f(features dot this.w)
   }
 
   val threshold: (Double) => Double = (x) => {
-    println(x)
-
     if (x > 0) 1.0f else 0.0f
   }
 
   val sigmoid: (Double) => Double = (x) => {
-    println(x)
     if (1 / (1 + exp(-x)) > 0.5) 1.0f else 0.0f
   }
 
-  val galussian: (Double) => Double = (x) => {
+  val gaussian: (Double) => Double = (x) => {
     if (exp(- pow(-x,2) / (2*2)) > 0.5) 1.0f else 0.0f
   }
 

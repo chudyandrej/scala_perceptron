@@ -28,15 +28,16 @@ object run {
     Logger.getLogger("org").setLevel(Level.ERROR)
     val sc = new SparkContext("local[*]", "RatingsCounter")
 
-
     val parser = new Parser()
     val lines = sc.textFile("./data/sonar.all-data.csv")
     val features = lines.map(parser.parseFeatures)
     val labels = lines.map(parser.parseLabel)
 
 
-    val a : Perceptron = new Perceptron(0.01f,1000, "galussian")
+
+    val a : Perceptron = new Perceptron(0.01f,2000, "sigmoid")
     a.fit(features, labels)
+
 
   }
 
