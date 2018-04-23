@@ -39,8 +39,7 @@ class Perceptron(var learning_rate: Double, var n_epoch: Int, var act_function:S
       case "sigmoid"  => sigmoid
       case "gaussian"  =>  gaussian
       case "threshold"  =>  threshold
-
-      case whoa  => threshold
+      case _  => threshold
     }
 
     act_f(features dot this.w)
