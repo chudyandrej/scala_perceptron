@@ -1,37 +1,68 @@
-
 import breeze.linalg.DenseVector
 import org.apache.spark._
 import org.apache.log4j._
+import org.apache.spark.sql.{Row, SparkSession}
+
 
 
 
 
 class Parser extends java.io.Serializable {
+
   def parseFeatures(line:String):DenseVector[Double] = {
-    val fields = DenseVector(line.split(",").dropRight(1).map(x=>x.toDouble))
-    val v = DenseVector.ones[Double](fields.length + 1)
-    v(1 to fields.length ) := fields
+    val features = DenseVector(line.split(",").dropRight(1).map(x=>x.toDouble))
+    val v = DenseVector.ones[Double](features.length + 1)
+    v(1 to features.length ) := features
     v
   }
 
   def parseLabel(line:String):Double = {
-    val fields = line.split(",")
-    if (fields.takeRight(1)(0) == "R") 1.0 else 0.0
+    val features = line.split(",")
+    if (features.takeRight(1)(0) == "R") 1.0 else 0.0
   }
 }
 
 
 object run {
+//TODO unsuccessful try to parse, problem is Any data type in Row object
+//  def parse_data(features: Array[Row]): Unit = {
+//    println("Start")
+//
+//    val featuresDV = features.map(r =>{
+//      val f_DV = DenseVector(r.toSeq.toArray.foreach(x=>x.to))
+//      val v = DenseVector.ones[Double](f_DV.length )
+//      println(f_DV.length)
+//      v(1 to f_DV.length):=f_DV
+//      v
+//    })
+//    featuresDV.foreach(println)
+//    featuresDV(featuresDV.count().toInt)
+//
+//
+//  }
 
   def main(args: Array[String]): Unit = {
 
     Logger.getLogger("org").setLevel(Level.ERROR)
-    val sc = new SparkContext("local[*]", "RatingsCounter")
+    val sc = new SparkContext("local[*]", "Perceptron")
+
+
+    //TODO I don't know how convert Dataset type in "data_csv" to vector :(
+    val sparkSession = SparkSession.builder
+      .master("local")
+      .appName("my-spark-app")
+//      .config("spark.some.config.option", "config-value")
+      .getOrCreate()
+
+    val data_csv = sparkSession.read
+      .format("com.databricks.spark.csv")
+      .option("header", "false")
+      .load("./data/sonar.all-data.csv")
+
 
     val parser = new Parser()
     val lines = sc.textFile("./data/sonar.all-data.csv")
     val Array(train_data,test_data) = lines.randomSplit(Array(0.90, 0.10))
-
 
 
     val train_features = train_data.map(parser.parseFeatures)
@@ -41,8 +72,9 @@ object run {
 
 
 
+    val act_f = new PerceptronActFunction
 
-    val model : Perceptron = new Perceptron(0.01f,500, "threshold")
+    val model : Perceptron = new Perceptron(0.01f,500, act_f.threshold)
     model.fit(train_features, train_labels)
 
 
