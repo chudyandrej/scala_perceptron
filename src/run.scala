@@ -18,7 +18,12 @@ class Parser extends java.io.Serializable {
 
   def parseLabel(line:String):Double = {
     val features = line.split(",")
-    if (features.takeRight(1)(0) == "R") 1.0 else 0.0
+//    if (features.takeRight(1)(0) == "Iris-setosa") 0.0
+//    else if (features.takeRight(1)(0) == "Iris-versicolor") 1.0
+//    else 2.0
+
+//    if (features.takeRight(1)(0) == "R") 1.0 else 0.0
+    features.takeRight(1)(0).toDouble
   }
 }
 
@@ -61,8 +66,9 @@ object run {
 
 
     val parser = new Parser()
-    val lines = sc.textFile("./data/sonar.all-data.csv")
-    val Array(train_data,test_data) = lines.randomSplit(Array(0.90, 0.10))
+    val lines = sc.textFile("./data/multiclass_data.csv")
+
+    val Array(train_data,test_data) = lines.randomSplit(Array(0.77, 0.33))
 
 
     val train_features = train_data.map(parser.parseFeatures)
@@ -74,10 +80,13 @@ object run {
 
     val act_f = new PerceptronActFunction
 
-    val model : Perceptron = new Perceptron(0.01f,500, act_f.threshold)
+    val model: MultiClassPerceptron = new MultiClassPerceptron(0.005f,500, act_f.sigmoid)
     model.fit(train_features, train_labels)
 
-
+//    val model : Perceptron = new Perceptron(0.01f,500, act_f.threshold)
+//    model.fit(train_features, train_labels)
+//
+//
     val X_y = test_features.zip(test_labels)
     val accuracy = X_y.map(data => {
       if (Math.abs(model.prediction(data._1) - data._2) <0.01) 1.0 else 0.0

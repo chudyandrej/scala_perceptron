@@ -5,7 +5,51 @@ import org.apache.spark.rdd.RDD
 
 
 
-class Perceptron(var learning_rate: Double, var n_epoch: Int, var act_function:(Double) => Double) extends java.io.Serializable  {
+
+
+
+
+class MultiClassPerceptron(var learning_rate: Double, var n_epoch: Int, var act_function:(Double, Boolean) => Double) extends java.io.Serializable  {
+
+  var perceptrons:Array[BinaryPerceptron] = new Array[BinaryPerceptron](1)
+  var classes = new Array[Double](1)
+
+  def fit(X: RDD[DenseVector[Double]], y: RDD[Double], logging:Boolean = true): Unit = {
+    this.classes = y.distinct().collect().array
+    val classes_count = classes.length
+    this.perceptrons = new Array[BinaryPerceptron](classes_count)
+
+    for(i <- 0 until classes_count) {
+      perceptrons(i) = new BinaryPerceptron(learning_rate, n_epoch, act_function, multiclass = true)
+      // Relabeled for class i
+      val label_class = y.map(x => {if (x == classes(i)) 1.0 else 0.0})
+
+      perceptrons(i).fit(X, label_class, logging=false)
+
+    }
+
+    val X_y = X.zip(y)
+//    val accuracy = X_y.map(data => {
+//      if (Math.abs(prediction(data._1) - data._2) < 0.01) 1.0 else 0.0
+//    }).reduce((x,y) => x + y) / X.count()
+//    if(logging) {
+//      println(f"Accuracy  -----> $accuracy%2.2f")
+//    }
+  }
+
+  def prediction(features: DenseVector[Double]): Double = {
+    // Multi-Class Decision Rule:
+    val scores = this.perceptrons.map(x=>x.prediction(features))
+    val max_index = scores.zipWithIndex.maxBy(_._1)._2
+    this.classes(max_index)
+  }
+}
+
+
+
+
+class BinaryPerceptron(var learning_rate: Double, var n_epoch: Int, var act_function:(Double, Boolean) => Double,
+                 val multiclass: Boolean = false) extends java.io.Serializable  {
 
   var w: DenseVector[Double] = DenseVector.zeros[Double](1)
   val prediction_error = 0.01
@@ -38,23 +82,36 @@ class Perceptron(var learning_rate: Double, var n_epoch: Int, var act_function:(
 
 
   def prediction(features: DenseVector[Double]): Double = {
-    this.act_function(features dot this.w)
+    this.act_function(features dot this.w, multiclass)
   }
 
 }
 
 class PerceptronActFunction extends java.io.Serializable {
 
-  val threshold: (Double) => Double = (x) => {
-    if (x > 0) 1.0f else 0.0f
+  val linear: (Double, Boolean) => Double = (x, binary) => {
+    if(binary){
+      x
+    } else {
+      if (x > 0) 1.0f else 0.0f
+    }
+
   }
 
-  val sigmoid: (Double) => Double = (x) => {
-    if (1 / (1 + exp(-x)) > 0.5) 1.0f else 0.0f
+  val sigmoid: (Double, Boolean) => Double = (x, binary) => {
+    if(binary) {
+      1 / (1 + exp(-x))
+    } else {
+      if (1 / (1 + exp(-x)) > 0.5) 1.0f else 0.0f
+    }
   }
 
-  val gaussian: (Double) => Double = (x) => {
-    if (exp(- pow(-x,2) / (2*2)) > 0.5) 1.0f else 0.0f
+  val gaussian: (Double, Boolean) => Double = (x, binary) => {
+    if(binary) {
+      exp(-pow(-x, 2) / (2 * 2))
+    }else{
+      if (exp(- pow(-x,2) / (2*2)) > 0.5) 1.0f else 0.0f
+    }
   }
 }
 
