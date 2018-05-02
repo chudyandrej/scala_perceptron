@@ -4,11 +4,6 @@ import org.apache.spark.rdd.RDD
 
 
 
-
-
-
-
-
 class MultiClassPerceptron(var learning_rate: Double, var n_epoch: Int, var act_function:(Double, Boolean) => Double) extends java.io.Serializable  {
 
   var perceptrons:Array[BinaryPerceptron] = new Array[BinaryPerceptron](1)
@@ -16,19 +11,19 @@ class MultiClassPerceptron(var learning_rate: Double, var n_epoch: Int, var act_
 
   def fit(X: RDD[DenseVector[Double]], y: RDD[Double], logging:Boolean = true): Unit = {
     this.classes = y.distinct().collect().array
-    val classes_count = classes.length
+    val classes_count = this.classes.length
     this.perceptrons = new Array[BinaryPerceptron](classes_count)
 
     for(i <- 0 until classes_count) {
-      perceptrons(i) = new BinaryPerceptron(learning_rate, n_epoch, act_function, multiclass = true)
+      this.perceptrons(i) = new BinaryPerceptron(this.learning_rate, this.n_epoch, this.act_function, multiclass=true)
       // Relabeled for class i
-      val label_class = y.map(x => {if (x == classes(i)) 1.0 else 0.0})
+      val label_class = y.map(x => {if (x == this.classes(i)) 1.0 else 0.0})
 
-      perceptrons(i).fit(X, label_class, logging=false)
+      this.perceptrons(i).fit(X, label_class, logging=false)
 
     }
 
-    val X_y = X.zip(y)
+//    val X_y = X.zip(y)
 //    val accuracy = X_y.map(data => {
 //      if (Math.abs(prediction(data._1) - data._2) < 0.01) 1.0 else 0.0
 //    }).reduce((x,y) => x + y) / X.count()
@@ -52,7 +47,6 @@ class BinaryPerceptron(var learning_rate: Double, var n_epoch: Int, var act_func
                  val multiclass: Boolean = false) extends java.io.Serializable  {
 
   var w: DenseVector[Double] = DenseVector.zeros[Double](1)
-  val prediction_error = 0.01
 
 
   def fit(X: RDD[DenseVector[Double]], y: RDD[Double], logging:Boolean = true): Unit = {
@@ -71,7 +65,7 @@ class BinaryPerceptron(var learning_rate: Double, var n_epoch: Int, var act_func
 
       if (e % 10 == 0 || e == n_epoch){
         val accuracy = X_y.map(data => {
-          if (Math.abs(prediction(data._1) - data._2) < prediction_error) 1.0 else 0.0
+          if (Math.abs(prediction(data._1) - data._2) < 0.01) 1.0 else 0.0
         }).reduce((x,y) => x + y) / X.count()
         if(logging) {
           println(f"[Epoch $e%d] Accuracy  -----> $accuracy%2.2f")
@@ -82,7 +76,7 @@ class BinaryPerceptron(var learning_rate: Double, var n_epoch: Int, var act_func
 
 
   def prediction(features: DenseVector[Double]): Double = {
-    this.act_function(features dot this.w, multiclass)
+    this.act_function(features dot this.w, this.multiclass)
   }
 
 }
