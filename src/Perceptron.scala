@@ -46,13 +46,12 @@ class MultiClassPerceptron(var learning_rate: Double, var n_epoch: Int, var act_
 class BinaryPerceptron(var learning_rate: Double, var n_epoch: Int, var act_function:(Double, Boolean) => Double,
                  val multiclass: Boolean = false) extends java.io.Serializable  {
 
-  var w: DenseVector[Double] = DenseVector.zeros[Double](1)
-
+  var w: DenseVector[Double] = DenseVector.ones[Double](1)
 
   def fit(X: RDD[DenseVector[Double]], y: RDD[Double], logging:Boolean = true): Unit = {
 
     this.w = DenseVector.zeros[Double](X.first().length)
-    val X_y = X.zip(y).cache()
+    val X_y = X.zip(y)
 
     for(e <- 1 to n_epoch) {
 
@@ -96,7 +95,7 @@ class PerceptronActFunction extends java.io.Serializable {
     if(binary) {
       1 / (1 + exp(-x))
     } else {
-      if (1 / (1 + exp(-x)) > 0.5) 1.0f else 0.0f
+      if ((1 / (1 + exp(-x))) > 0.5) 1.0f else 0.0f
     }
   }
 
