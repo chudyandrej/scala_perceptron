@@ -14,22 +14,13 @@ class MultiClassPerceptron(var learning_rate: Double, var n_epoch: Int, var act_
     val classes_count = this.classes.length
     this.perceptrons = new Array[BinaryPerceptron](classes_count)
 
-    for(i <- 0 until classes_count) {
+    (0 until classes_count).map(i=> {
       this.perceptrons(i) = new BinaryPerceptron(this.learning_rate, this.n_epoch, this.act_function, multiclass=true)
       // Relabeled for class i
       val label_class = y.map(x => {if (x == this.classes(i)) 1.0 else 0.0})
-
       this.perceptrons(i).fit(X, label_class, logging=false)
-
-    }
-
-//    val X_y = X.zip(y)
-//    val accuracy = X_y.map(data => {
-//      if (Math.abs(prediction(data._1) - data._2) < 0.01) 1.0 else 0.0
-//    }).reduce((x,y) => x + y) / X.count()
-//    if(logging) {
-//      println(f"Accuracy  -----> $accuracy%2.2f")
-//    }
+      i
+    })
   }
 
   def prediction(features: DenseVector[Double]): Double = {

@@ -22,39 +22,41 @@ object run {
     val data_csv = sparkSession.read
       .format("com.databricks.spark.csv")
       .option("header", "false")
-      .load("./data/multiclass_data.csv")
+      .load("./data/mult-class_data.csv")
 
 
-    val features = data_csv.drop("_c0").drop("_c10").rdd.map(row => {
-      val f_DV = DenseVector(row.toSeq.toArray.map(x=> x.asInstanceOf[String].toDouble))
-      val v = DenseVector.ones[Double](f_DV.length+1 )
-      v(1 to f_DV.length):=f_DV
-      v
+    val acc = (1 to 20).map(_=>{
+
+      val features = data_csv.drop("_c4").rdd.map(row => {
+        val f_DV = DenseVector(row.toSeq.toArray.map(x=> x.asInstanceOf[String].toDouble))
+        val v = DenseVector.ones[Double](f_DV.length+1 )
+        v(1 to f_DV.length):=f_DV
+        v
+      })
+      val labels = data_csv.select("_c4").rdd.map(r => r(0).asInstanceOf[String].toDouble)
+
+      val Array(train_data,test_data) = features.zip(labels).randomSplit(Array(0.7, 0.3))
+      val train_features = train_data.map(x=>x._1)
+      val train_label = train_data.map(x=>x._2)
+      val test_features = test_data.map(x=>x._1)
+      val test_labels = test_data.map(x=>x._2)
+
+
+      val act_f = new PerceptronActFunction
+      val model: MultiClassPerceptron = new MultiClassPerceptron(0.002f,500, act_f.sigmoid)
+      model.fit(train_features, train_label)
+
+      val X_y = test_features.zip(test_labels)
+      val accuracy = X_y.map(data => {
+        if (Math.abs(model.prediction(data._1) - data._2) <0.01) 1.0 else 0.0
+      }).reduce((x,y) => x + y) / test_features.count() * 100
+      println(f"Accuracy on test data:  $accuracy%2.2f%%")
+
+      accuracy
+
     })
-    val labels = data_csv.select("_c10").rdd.map(r => r(0).asInstanceOf[String].toDouble)
 
-    val Array(train_data,test_data) = features.zip(labels).randomSplit(Array(0.7, 0.3))
-    val train_features = train_data.map(x=>x._1)
-    val train_label = train_data.map(x=>x._2)
-    val test_features = test_data.map(x=>x._1)
-    val test_labels = test_data.map(x=>x._2)
-
-    val act_f = new PerceptronActFunction
-    val model: MultiClassPerceptron = new MultiClassPerceptron(0.05f,500, act_f.sigmoid)
-    model.fit(train_features, train_label)
-//
-////    val model : Perceptron = new Perceptron(0.01f,500, act_f.threshold)
-////    model.fit(train_features, train_labels)
-////
-////
-    val X_y = test_features.zip(test_labels)
-    val accuracy = X_y.map(data => {
-      if (Math.abs(model.prediction(data._1) - data._2) <0.01) 1.0 else 0.0
-    }).reduce((x,y) => x + y) / test_features.count() * 100
-
-    println(f"Accuracy on test data:  $accuracy%2.2f%%")
-
-
+    acc.foreach(println)
 
   }
 
