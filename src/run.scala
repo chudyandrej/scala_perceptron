@@ -22,18 +22,19 @@ object run {
     val data_csv = sparkSession.read
       .format("com.databricks.spark.csv")
       .option("header", "false")
-      .load("./data/mult-class_data.csv")
+      .load("./data/binary/sonar-data.csv")
 
+    data_csv.show()
 
     val acc = (1 to 20).map(_=>{
 
-      val features = data_csv.drop("_c4").rdd.map(row => {
+      val features = data_csv.drop("_c60").rdd.map(row => {
         val f_DV = DenseVector(row.toSeq.toArray.map(x=> x.asInstanceOf[String].toDouble))
         val v = DenseVector.ones[Double](f_DV.length+1 )
         v(1 to f_DV.length):=f_DV
         v
       })
-      val labels = data_csv.select("_c4").rdd.map(r => r(0).asInstanceOf[String].toDouble)
+      val labels = data_csv.select("_c60").rdd.map(r => r(0).asInstanceOf[String].toDouble)
 
       val Array(train_data,test_data) = features.zip(labels).randomSplit(Array(0.7, 0.3))
       val train_features = train_data.map(x=>x._1)
@@ -43,7 +44,10 @@ object run {
 
 
       val act_f = new PerceptronActFunction
-      val model: MultiClassPerceptron = new MultiClassPerceptron(0.002f,500, act_f.sigmoid)
+//      val model: MultiClassPerceptron = new MultiClassPerceptron(0.002f,500, act_f.sigmoid)
+//      model.fit(train_features, train_label)
+
+      val model = new BinaryPerceptron(0.002, 500, act_f.sigmoid)
       model.fit(train_features, train_label)
 
       val X_y = test_features.zip(test_labels)
